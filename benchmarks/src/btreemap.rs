@@ -1,6 +1,6 @@
 use crate::Random;
 use canbench_rs::{bench, bench_fn, BenchResult};
-use ic_stable_structures::{storable::Blob, BTreeMap, DefaultMemoryImpl, Storable};
+use ic_stable_structures::{storable::Blob, BTreeMap, DefaultMemoryImpl, Log, Storable};
 use std::ops::Bound;
 use tiny_rng::{Rand, Rng};
 
@@ -180,6 +180,28 @@ pub fn btreemap_insert_u64_u64_v2() -> BenchResult {
 pub fn btreemap_insert_u64_blob_8() -> BenchResult {
     let btree = BTreeMap::new_v1(DefaultMemoryImpl::default());
     insert_helper::<u64, Blob<8>>(btree)
+}
+
+#[bench(raw)]
+pub fn compare_insert_log_100() -> BenchResult {
+    let log = Log::new(DefaultMemoryImpl::default(), DefaultMemoryImpl::default());
+    insert_log_helper::<Blob<100>>(log)
+}
+
+#[bench(raw)]
+pub fn compare_insert_btree_100() -> BenchResult {
+    insert_blob_helper_v2::<8, 100>()
+}
+
+#[bench(raw)]
+pub fn compare_insert_log_1000() -> BenchResult {
+    let log = Log::new(DefaultMemoryImpl::default(), DefaultMemoryImpl::default());
+    insert_log_helper::<Blob<1000>>(log)
+}
+
+#[bench(raw)]
+pub fn compare_insert_btree_1000() -> BenchResult {
+    insert_blob_helper_v2::<8, 1000>()
 }
 
 #[bench(raw)]
@@ -513,6 +535,25 @@ fn insert_helper<K: Clone + Ord + Storable + Random, V: Storable + Random>(
         // Insert the keys into the btree.
         for (k, v) in random_keys.into_iter().zip(random_values.into_iter()) {
             btree.insert(k, v);
+        }
+    })
+}
+
+fn insert_log_helper<V: Storable + Random>(
+    log: Log<V, DefaultMemoryImpl, DefaultMemoryImpl>,
+) -> BenchResult {
+    let num_keys = 10_000;
+    let mut rng = Rng::from_seed(0);
+    let mut random_values = Vec::with_capacity(num_keys);
+
+    for _ in 0..num_keys {
+        random_values.push(V::random(&mut rng));
+    }
+
+    bench_fn(|| {
+        // Insert the keys into the btree.
+        for v in random_values.into_iter() {
+            let _ = log.append(&v);
         }
     })
 }
