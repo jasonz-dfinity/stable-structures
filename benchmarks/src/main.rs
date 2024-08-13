@@ -3,6 +3,7 @@ use tiny_rng::{Rand, Rng};
 
 mod btreemap;
 mod memory_manager;
+mod nns_vote_cascading;
 mod vec;
 
 trait Random {
